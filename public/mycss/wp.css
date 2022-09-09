@@ -1,0 +1,74 @@
+body {
+    margin: 0 5%;
+    
+}
+/*--------------------
+    Header CSS
+--------------------*/
+
+header h1 {
+    text-align:center;
+    margin: 0 -10%;
+    color: white;
+    background-color: #0D1321;
+}
+
+
+/* Navigation CSS */
+
+#navbar {
+    list-style-type: none;
+    margin: 0 10%;
+    padding: 0;
+    overflow: hidden;
+    background-color: #1D2D44;
+}
+#navbar li {
+    float:left;
+}
+#navbar a {
+    display: block;
+    padding: 4px 14px;
+    color: white;
+    text-decoration: none;
+}
+
+#navbar a:hover {
+    background-color: #3E5C76;
+}
+
+/*--------------------
+    Main Section of Body CSS
+--------------------*/
+
+main {
+    margin: 0 10%;
+}
+
+.grid-container{
+    display: grid;
+    grid-template-columns: auto auto;
+    padding: 10px;
+    margin: 0 5%;
+}
+
+.grid-item {
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    font-size: 20px;
+    text-align: left;
+    text-decoration:none;
+    color:black;
+}
+
+.grid-item:hover {
+    background-color: #3E5C76;
+    color: white;
+}
+
+ul {
+    list-style-type:none;
+}
+
+
