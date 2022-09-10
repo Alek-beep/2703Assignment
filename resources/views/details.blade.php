@@ -5,8 +5,8 @@
 @endsection
    
 @section('content')
+<h1 style="text-align:center">{{$errorMessage}}</h1>
 <h3>Project Details for {{$projectDetails[0]->projectName}}: </h3>
-<h4>{{$errorMessage}}</h4>
 <ul>
   <li><h3>Project Name: </h3>{{$projectDetails[0]->projectName}}</li>
   <li><h3>Field: </h3>{{$projectDetails[0]->major}}</li>

@@ -11,11 +11,11 @@
     <h3>Advertise a project:</h3>
     <p>
       <label>Company Name: </label><br>
-      <input type="text" name="companyName">
+      <input type="text" name="companyName" value = "{{$name}}">
     </p>
     <p>
       <label>Company Location: </label><br>
-      <input type="text" name="companyLocation">
+      <input type="text" name="companyLocation" value = "{{$location}}">
     </p>
     <p>
       <label>Project Title: </label><br>

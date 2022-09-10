@@ -8,7 +8,7 @@ body {
 
 header h1 {
     text-align:center;
-    margin: 0 -10%;
+    margin: 0 -5.55%;
     color: white;
     background-color: #0D1321;
 }
@@ -62,7 +62,28 @@ main {
     color:black;
 }
 
-.grid-item:hover {
+.grid-container-top3{
+    display: grid;
+    grid-template-columns: auto;
+    padding: 10px;;
+    width:20%;
+    align-items: center;
+    margin-left:auto;
+    margin-right:auto;
+}
+.grid-item-top3 {
+    background-color: white;
+    border: 1px solid rgba(0, 0, 0, 0.8);
+    padding: 20px;
+    font-size: 20px;
+    text-align:center;
+    text-decoration:none;
+    color:black;
+}
+
+
+
+.grid-item:hover, .grid-item-top3:hover {
     background-color: #3E5C76;
     color: white;
 }
