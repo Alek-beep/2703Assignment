@@ -14,11 +14,6 @@
   <p>No Projects Found.</p>
 @endforelse
 </div>
-<form method="post" action="{{url('/test')}}">
-    {{csrf_field()}}
-    <h3>Test</h3>
-    <input type="submit" value="Test">
-</form>
 @endsection
 
 

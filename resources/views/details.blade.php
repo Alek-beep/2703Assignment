@@ -73,6 +73,10 @@
       <label>Justification: </label><br>
       <textarea name="justification">Enter text here</textarea>
     </p>
+    <p>
+      <label>Preference (1-3, 1 being highest priority): </label><br>
+      <input type="number" min="1" max="3" name="preference" value="1"></input>
+    </p>
     <input type="submit" value="Apply">
   </form>
 </div>

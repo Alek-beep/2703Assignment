@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Requests;
 use App\Http\Controllers\SessionController;
+require_once("../public/defs/defs.php");
 
 /*
 |--------------------------------------------------------------------------
@@ -18,37 +19,18 @@ use App\Http\Controllers\SessionController;
 |
 */
 
-
-
-// The rest of the routes
+// Route for the home page
 Route::get('/', function () {
-    $sql1 = "select Project.id, projectName, partnerName
-             from Project, IndPartner
-             where Project.partner_id = IndPartner.id";
-    /*
-        This sql query generates a list of all projects and counts the number of
-        occurences in the Student Application table. The COALESCE statement replaces
-        any missing counts with 0 since some projects will have no applications.
-    */
-    $sql2 = "
-                select  p.id,
-                        COALESCE(s.applicationCount, 0) AS applicationCount
-                from    Project p
-                LEFT JOIN
-                (
-                    SELECT project_id, COUNT(*) AS applicationCount
-                    FROM StudentApplication
-                    GROUP BY project_id
-                ) s
-                    ON p.id = s.project_id
-            ";
-    $projectsCount = DB::select($sql2);
-   
-    $projects = DB::select($sql1);
-    return view('home') ->with('projects',$projects)
-                        ->with('projectCount',$projectsCount);
+    $homeArray = home_display();
+    return view('home') ->with('projects',$homeArray[1])
+                        ->with('projectCount',$homeArray[0]);
+});
+// Route for the documentation page
+Route::get('/documentation', function () {
+    return view('documentation');
 });
 
+//Route for logging out and resetting the session details
 Route::get('/logOut', function(Request $request){
     $request->session()->forget('companyName');
     $request->session()->forget('companyLocation');
@@ -56,6 +38,7 @@ Route::get('/logOut', function(Request $request){
     
 });
 
+//Route for navigating to the advertise form, taking the stored company name and location from the session storage with it
 Route::get('/advertise/{errorMessage?}', function ($errorMessage="", Request $request) {
     if($request->session()->has('companyName') && $request->session()->has('companyLocation')){
         $companyName = $request->session()->get('companyName');
@@ -69,56 +52,43 @@ Route::get('/advertise/{errorMessage?}', function ($errorMessage="", Request $re
                             ->with('location', $companyLocation);
 });
 
+//Route for navigating to the page displaying the top 3 industry partners by order of the amount of projects advertised
 Route::get('/top3', function () {
-
-    $sql1 = "
-                SELECT i.partnerName, COUNT(*) AS numberProjects
-                FROM IndPartner i, Project p
-                WHERE p.partner_id = i.id
-                GROUP BY i.partnerName
-                ORDER BY numberProjects DESC
-            ";
-    $partners = DB::select($sql1);
-
+    $partners = top3_display();
     return view('top3')->with('partners', $partners);
 });
 
+//Route for navigating to the page displaying the assignment of projects to students
 Route::get('/projectAssignment', function () {
-    return view('projectAssignment');
+    $projects = project_assignment();
+    return view('projectAssignment')->with('projects',$projects);
 });
 
+//Route for displaying the students who have applied to a project
 Route::get('/studentsApplied', function () {
-    $sql1 = "Select DISTINCT student_id, firstName, lastName from Student, StudentApplication where student_id = id";
-    return view('studentsApplied')->with('students', DB::select($sql1));
+    return view('studentsApplied')->with('students', students_applied());
 });
 
+//Route for displaying the projects a student has applied to
 Route::get('/projects/{studentId}/', function ($studentId) {
-    $sql1 = "select projectName, partnerName, project_id from Project, StudentApplication, IndPartner where student_id = $studentId and project_id = Project.id and partner_id = IndPartner.id";
-    return view('projects')->with('projects', DB::select($sql1));
+    return view('projects')->with('projects', projects_student($studentId));
                                                                                         
 });
 
+//Route for displaying the details of a selected project
 Route::get('/details/{projectId}/{errorMessage?}', function ($projectId, $errorMessage="") {
-    $sql1 = "select * from Project where id = ?";
-    $sql2 = "select partnerName from IndPartner, Project where Project.partner_id = IndPartner.id and Project.id = ? ";
-    $sql3 = "select firstname, lastname from Student, StudentApplication where StudentApplication.project_id = ? and StudentApplication.student_id = Student.id";
-    return view('details')->with('projectDetails',DB::select($sql1, array($projectId))) ->with('partnerName',DB::select($sql2, array($projectId))[0]->partnerName)
-                                                                                        ->with('students',DB::select($sql3, array($projectId)))
+    $result = details_display($projectId);
+    return view('details')->with('projectDetails', $result[0]) ->with('partnerName', $result[1])
+                                                                                        ->with('students', $result[2])
                                                                                         ->with('errorMessage',$errorMessage);                                                                                    
 });
 
+//Route for displaying the justification a student has entered for their application to a project
 Route::get('/justification/{firstName}/{lastName}/{project_id}', function ($firstName, $lastName, $project_id) {
-    $sql1 = "select id from Student where firstName = ? and lastName = ?";
-    $studentId = DB::select($sql1, array($firstName, $lastName))[0]->id;
-    $sql2 = "select justification from StudentApplication where project_id = $project_id and student_id = $studentId";
-
-    return view('justification')->with('justification', DB::select($sql2)[0]->justification);
-                                                                                        
+    return view('justification')->with('justification', justification_get($firstName, $lastName, $project_id));                                                                                     
 });
-// Session routes
-Route::get('session/get','App\Http\Controllers\SessionController@accessSessionData');
-Route::get('session/remove','App\Http\Controllers\SessionController@deleteSessionData');
 
+//Route for an industry partner to advertise a new project. Using the session functionality, the company name and location are read from storage if it is in there
 Route::post('/add_project', function (Request $request) {
     $companyName = request('companyName');
     $companyLocation = request('companyLocation');
@@ -137,8 +107,6 @@ Route::post('/add_project', function (Request $request) {
     } else {
         return view('advertise')->with('errorMessage', 'All fields must contain a value!');
     }
-
-    
     if($id)
     {
         return redirect("/details/$id");
@@ -147,22 +115,24 @@ Route::post('/add_project', function (Request $request) {
     }
 });
 
+//Route for a student to submit an application to work on a project
 Route::post('/add_application', function () {
     $firstName = request('firstName');
     $lastName = request('lastName');
     $justification = request('justification');
+    $preference = request('preference');
     $projectId = request('id');
 
-    $studentValid = add_application($firstName, $lastName, $justification, $projectId);
-    if($studentValid)
+    $studentValid = add_application($firstName, $lastName, $justification, $preference, $projectId);
+    if($studentValid == "Successful")
     {
         return redirect("/details/$projectId");
     } else {
-        $errorMessage = 'Invalid Student!';
-        return redirect("/details/$projectId/$errorMessage");
+        return redirect("/details/$projectId/$studentValid");
     }
 });
 
+//Route for an industry partner to update a project
 Route::post('/update_project', function () {
     $projectId = request('id');
     $projectTitle = request('projectTitle');
@@ -173,72 +143,18 @@ Route::post('/update_project', function () {
     return redirect("/details/$projectId");
 });
 
+//Route for deleting a project
 Route::post('/delete_project', function () {
     $projectId = request('id');
     delete_project($projectId);
     return redirect("/");
 });
 
+//Route for a student to apply to
 Route::post('/apply_project', function () {
     $projectId = request('id');
     delete_project($projectId);
     return redirect("/");
 });
 
-Route::post('/test', function () {
-    $sql = "select * from StudentApplication";
-    dd(DB::select($sql));
-});
-
-function add_project($companyName, $companyLocation, $projectTitle, $major, $projectDescription, $numberStudents){
-   
-    $sql1 = "select id from IndPartner where partnerName = '$companyName' and location = '$companyLocation'";
-    $companyId = DB::select($sql1)[0]->id;
-    
-    $sql2 = "insert into Project(projectName, major, description, numberStudents, partner_id) values (?,?,?,?,?)";
-    DB::insert($sql2, array($projectTitle, $major, $projectDescription, $numberStudents, $companyId));
-    $projectId = DB::getPdo()->lastInsertId();
-    return $projectId;
-}
-
-function add_application($firstName, $lastName, $justification, $projectId){
-    $sql1 = "select id from Student where firstName = ? and lastName = ?";
-    $student = DB::select($sql1, array($firstName, $lastName));
-    // Check if student exists
-    if($student == []){
-        return false;
-    }
-    $studentId = $student[0]->id;
-    $sql2 = "select student_id, project_id from StudentApplication where student_id = $studentId and project_id = $projectId";
-    $studentInProj = DB::select($sql2);
-
-    // Check if student aleady in project
-    if($studentInProj != []){
-        return false;
-    }
-    
-    if($studentId){
-        $sql2 = "insert into StudentApplication(project_id, student_id, justification) values (?,?,?);";
-        DB::update($sql2, array($projectId, $studentId, $justification));
-        return true;
-    } else {
-        return false;
-    }
-    
-}
-
-function update_project($id, $title, $major, $description, $students){
-    $sql = "update Project set projectName = ?, major = ?, description = ?, numberStudents = ? where id = ?";
-    DB::update($sql, array($title, $major, $description, $students, $id));
-}
-
-function delete_project($id){
-    delete_application($id);
-    $sql = "delete from Project where id = ?";
-    DB::delete($sql, array($id));
-}
-
-function delete_application($id){
-    $sql = "delete from StudentApplication where project_id = ?";
-    DB::delete($sql, array($id));
-}
+?>
